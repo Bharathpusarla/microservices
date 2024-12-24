@@ -8,6 +8,7 @@ import com.microservices.job.job.dto.JobDTO;
 import com.microservices.job.job.external.Company;
 import com.microservices.job.job.external.Review;
 import com.microservices.job.job.mapper.Jobmapper;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
@@ -35,13 +36,22 @@ public class JobServiceimpl implements JobService {
     }
 
     @Override
+    @CircuitBreaker(name="companyBreaker",fallbackMethod = "companyBreakerFallback")
     public List<JobDTO> getalljobs() {
 
         List<Job> jobs= jobRepository.findAll();
         List<JobDTO> jobDTOS = new ArrayList<>();
 
-        return jobs.stream().map(this::convertToDto).collect(Collectors.toList());
+        return jobs.stream().map(this::convertToDto)
+                .collect(Collectors.toList());
     }
+    public List<JobDTO> companyBreakerFallback(Throwable throwable) {
+        System.out.println("Fallback triggered due to: " + throwable.getMessage());
+        List<JobDTO> fallbackList = new ArrayList<>();
+        return fallbackList;
+    }
+
+
 
     private JobDTO convertToDto(Job job){
 
